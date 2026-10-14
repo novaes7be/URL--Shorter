@@ -1,17 +1,22 @@
 package com.contatodireto.shorturl.controller;
 
+import com.contatodireto.shorturl.dto.RankingDTO;
 import com.contatodireto.shorturl.dto.UrlDTO;
 import com.contatodireto.shorturl.service.UrlService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
+@Validated
 public class URLController {
 
     private final UrlService urlService;
@@ -37,5 +42,10 @@ public class URLController {
     @GetMapping("/stats/{code}")
     public Long clicks(@PathVariable String code) {
         return urlService.getClicks(code);
+    }
+
+    @GetMapping("/ranking")
+    public List<RankingDTO> rankingList(@RequestParam(defaultValue = "10") @Min(1) int limit) {
+        return urlService.getTopLinks(limit);
     }
 }
