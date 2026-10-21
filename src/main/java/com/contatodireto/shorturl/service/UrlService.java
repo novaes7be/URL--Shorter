@@ -1,6 +1,8 @@
 package com.contatodireto.shorturl.service;
 
 import com.contatodireto.shorturl.dto.RankingDTO;
+import com.contatodireto.shorturl.entity.ShortUrl;
+import com.contatodireto.shorturl.repository.ShortUrlRepository;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -23,6 +25,7 @@ public class UrlService {
     private final StringRedisTemplate redisTemplate;
     private final SecureRandom secureRandom = new SecureRandom();
     private static final String ALFABETO = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    private final ShortUrlRepository shortRepo;
 
     @Value("${shorturl.ttl-seconds}")
     private long ttl;
@@ -32,14 +35,31 @@ public class UrlService {
 
         do {
             code = generateCode();
-        } while (Boolean.TRUE.equals(redisTemplate.hasKey("url:" + code)));
+        } while (shortRepo.existsByCode(code));
 
+        ShortUrl shortUrl = new ShortUrl();
+        shortUrl.setOriginalUrl(url);
+        shortUrl.setCode(code);
+
+        shortRepo.save(shortUrl);
         redisTemplate.opsForValue().set("url:" + code, url, Duration.ofSeconds(ttl));
+
         return code;
     }
 
     public Optional<String> find(String code) {
-        return Optional.ofNullable(redisTemplate.opsForValue().get("url:" + code));
+        String value = redisTemplate.opsForValue().get("url:" + code);
+        if (value != null) {
+            return Optional.of(value);
+        }
+        Optional<ShortUrl> shortUrl = shortRepo.findByCode(code);
+        if (shortUrl.isPresent()) {
+            String originalUrl = shortUrl.get().getOriginalUrl();
+            redisTemplate.opsForValue().set("url:" + code, originalUrl, Duration.ofSeconds(ttl));
+            return Optional.of(originalUrl);
+        }
+        return Optional.empty();
+
     }
 
     private String generateCode() {
