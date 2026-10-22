@@ -8,7 +8,7 @@ import javax.swing.text.html.parser.Entity;
 import java.util.Optional;
 
 @Repository
-public interface ShortUrlRepository extends JpaRepository {
+public interface ShortUrlRepository extends JpaRepository<ShortUrl, Long> {
 
      boolean existsByCode(String code);
      Optional<ShortUrl> findByCode(String code);
